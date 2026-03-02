@@ -1,0 +1,201 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "StockAnalysis API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:8000" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "Portfolio": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "desc": { "type": "string" }
+        },
+        "required": ["title", "desc"]
+      },
+      "Stock": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "portfolio": { "type": "integer" },
+          "title": { "type": "string" },
+          "ticker": { "type": "string" }
+        },
+        "required": ["portfolio", "title", "ticker"]
+      },
+      "StockSearchItem": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "symbol": { "type": "string" },
+          "exchange": { "type": "string" },
+          "region": { "type": "string" }
+        }
+      },
+      "DashboardResponse": {
+        "type": "object",
+        "properties": {
+          "ticker": { "type": "string" },
+          "data_head": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "Date": { "type": "string" }, "Close": { "type": "number" } }
+            }
+          },
+          "pe_ratio": { "type": "number" },
+          "fig_urls": {
+            "type": "object",
+            "properties": { "pe": { "type": "string" }, "opportunity": { "type": "string" }, "discount": { "type": "string" } }
+          },
+          "series": {
+            "type": "object",
+            "properties": {
+              "price": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "value": { "type": "number" } } } },
+              "ma60": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "value": { "type": "number" } } } },
+              "ma20": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "value": { "type": "number" } } } },
+              "ma50": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "value": { "type": "number" } } } },
+              "mean30": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "value": { "type": "number" } } } },
+              "buy_sell_markers": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "position": { "type": "string" }, "color": { "type": "string" }, "shape": { "type": "string" }, "text": { "type": "string" } } } },
+              "undervalued_markers": { "type": "array", "items": { "type": "object", "properties": { "time": { "type": "string" }, "position": { "type": "string" }, "color": { "type": "string" }, "shape": { "type": "string" }, "text": { "type": "string" } } } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "paths": {
+    "/portfolio/": {
+      "get": {
+        "summary": "List portfolios",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Portfolio" } } } } }
+        }
+      },
+      "post": {
+        "summary": "Create portfolio",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } },
+          "400": { "description": "Bad Request" }
+        }
+      }
+    },
+    "/portfolio/{id}/": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+      ],
+      "get": {
+        "summary": "Get portfolio",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "summary": "Update portfolio",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } },
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } }
+        }
+      },
+      "patch": {
+        "summary": "Partial update portfolio",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Portfolio" } } } },
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      },
+      "delete": {
+        "summary": "Delete portfolio",
+        "responses": {
+          "204": { "description": "No Content" }
+        }
+      }
+    },
+    "/stock/": {
+      "get": {
+        "summary": "List stocks",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Stock" } } } } }
+        }
+      },
+      "post": {
+        "summary": "Create stock",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stock" } } } },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stock" } } } },
+          "400": { "description": "Bad Request" }
+        }
+      }
+    },
+    "/stock/{id}/": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+      ],
+      "get": {
+        "summary": "Get stock",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stock" } } } },
+          "404": { "description": "Not Found" }
+        }
+      },
+      "put": {
+        "summary": "Update stock",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stock" } } } },
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      },
+      "patch": {
+        "summary": "Partial update stock",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stock" } } } },
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      },
+      "delete": {
+        "summary": "Delete stock",
+        "responses": {
+          "204": { "description": "No Content" }
+        }
+      }
+    },
+    "/stock/search/": {
+      "get": {
+        "summary": "Search stocks",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "results": { "type": "array", "items": { "$ref": "#/components/schemas/StockSearchItem" } } } } } } }
+        }
+      }
+    },
+    "/dashboard/{ticker}/": {
+      "parameters": [
+        { "name": "ticker", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "get": {
+        "summary": "Get dashboard",
+        "security": [],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DashboardResponse" } } } },
+          "400": { "description": "Bad Request" },
+          "500": { "description": "Server Error" }
+        }
+      }
+    }
+  }
+}
