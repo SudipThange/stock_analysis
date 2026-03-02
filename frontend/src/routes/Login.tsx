@@ -18,9 +18,10 @@ export default function Login() {
   }
 
   return (
-    <div className="container" style={{maxWidth:420, padding:'32px 0'}}>
-      <div className="card">
+    <div className="container page" style={{paddingTop:48}}>
+      <div className="card auth-card">
         <div style={{fontSize:22, fontWeight:700, marginBottom:12}}>Admin Login</div>
+        <div className="section-sub">Sign in to manage portfolios, stocks, and analytics dashboards.</div>
         <form onSubmit={onSubmit} className="grid">
           <input className="input" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
           <input className="input" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />

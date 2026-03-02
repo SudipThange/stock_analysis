@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Popup from '../components/Popup'
 import { useAuth } from '../context/AuthContext'
 import { apiGet, apiJson } from '../api/client'
@@ -12,10 +12,14 @@ export default function Stocks() {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [items, setItems] = useState<Stock[]>([])
   const [form, setForm] = useState<{portfolio?: number; title: string; ticker: string}>({ title:'', ticker:'' })
+  const [pickedSymbol, setPickedSymbol] = useState<string | null>(null)
   const [editing, setEditing] = useState<Stock | null>(null)
   const [suggestions, setSuggestions] = useState<Suggest[]>([])
   const [showSug, setShowSug] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [showSuccess, setShowSuccess] = useState<{open:boolean; text:string}>({open:false, text:''})
+  const searchCacheRef = useRef<Record<string, Suggest[]>>({})
+  const latestSearchIdRef = useRef(0)
 
   const load = async () => {
     const ps = await apiGet('/portfolio/', access || undefined)
@@ -27,22 +31,67 @@ export default function Stocks() {
 
   useEffect(() => {
     const q = form.title.trim()
-    if (!q) { setSuggestions([]); return }
+    if (!form.portfolio || !q || q.length < 1) {
+      setSuggestions([])
+      setShowSug(false)
+      setIsSearching(false)
+      return
+    }
+
+    const cacheKey = `${form.portfolio}:${q.toLowerCase()}`
+    if (searchCacheRef.current[cacheKey]) {
+      setSuggestions(searchCacheRef.current[cacheKey])
+      setShowSug(true)
+      setIsSearching(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const searchId = ++latestSearchIdRef.current
     const id = setTimeout(async () => {
+      setIsSearching(true)
       try {
-        const data = await apiGet(`/stock/search/?q=${encodeURIComponent(q)}`, access || undefined)
-        setSuggestions(data.results || [])
+        const data = await apiGet(
+          `/stock/search/?q=${encodeURIComponent(q)}&portfolio_id=${form.portfolio}`,
+          access || undefined,
+          { signal: controller.signal }
+        )
+        if (searchId !== latestSearchIdRef.current) return
+        const next = data.results || []
+        if (next.length > 0) {
+          searchCacheRef.current[cacheKey] = next
+        }
+        setSuggestions(next)
         setShowSug(true)
-      } catch {}
-    }, 300)
-    return () => clearTimeout(id)
-  }, [form.title, access])
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return
+        if (searchId !== latestSearchIdRef.current) return
+        setSuggestions([])
+        setShowSug(true)
+      } finally {
+        if (searchId === latestSearchIdRef.current) {
+          setIsSearching(false)
+        }
+      }
+    }, 150)
+    return () => {
+      clearTimeout(id)
+      controller.abort()
+    }
+  }, [form.title, form.portfolio, access])
+
+  useEffect(() => {
+    setPickedSymbol(null)
+    setForm(prev => ({ ...prev, title: '', ticker: '' }))
+    setSuggestions([])
+  }, [form.portfolio])
 
   const submit = async () => {
-    if (!form.portfolio || !form.title || !form.ticker) return
+    if (!form.portfolio || !form.title || !form.ticker || !pickedSymbol) return
     try {
       await apiJson('/stock/', 'POST', { portfolio: form.portfolio, title: form.title, ticker: form.ticker }, access || undefined)
-      setForm({ title:'', ticker:'' })
+      setForm(prev => ({ ...prev, title:'', ticker:'' }))
+      setPickedSymbol(null)
       setShowSuccess({ open:true, text:`Stock “${form.title}” added to portfolio.` })
       await load()
     } catch (e) {
@@ -63,8 +112,8 @@ export default function Stocks() {
   }
 
   return (
-    <div className="container" style={{padding:'24px 0'}}>
-      <div className="grid" style={{gridTemplateColumns:'1fr 2fr'}}>
+    <div className="container page">
+      <div className="grid split-layout">
         <div className="card">
           <div style={{fontWeight:700, marginBottom:8}}>Create Stock</div>
           <div className="grid">
@@ -73,12 +122,32 @@ export default function Stocks() {
               {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
             <div style={{position:'relative'}}>
-              <input className="input" placeholder="Title" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} onFocus={()=>setShowSug(true)} onBlur={()=>setTimeout(()=>setShowSug(false),150)} />
-              {showSug && suggestions.length>0 && (
-                <div className="card" style={{position:'absolute', top:'100%', left:0, right:0, zIndex:10, maxHeight:200, overflow:'auto'}}>
-                  {suggestions.slice(0,10).map(s => (
-                    <div key={s.symbol} style={{padding:'8px', cursor:'pointer'}} onMouseDown={()=>{
-                      setForm({ ...form, title: s.name || s.symbol, ticker: s.symbol.toUpperCase() })
+              <input
+                className="input"
+                placeholder={form.portfolio ? 'Title' : 'Select portfolio first'}
+                value={form.title}
+                disabled={!form.portfolio}
+                onChange={e=>{
+                  setPickedSymbol(null)
+                  setForm(prev => ({ ...prev, title: e.target.value, ticker: '' }))
+                }}
+                onFocus={()=>{
+                  if (form.title.trim().length >= 1) setShowSug(true)
+                }}
+                onBlur={()=>setTimeout(()=>setShowSug(false),150)}
+              />
+              {showSug && form.portfolio && form.title.trim().length >= 1 && (
+                <div className="suggestion-menu" style={{position:'absolute', top:'100%', left:0, right:0, zIndex:10, maxHeight:220, overflow:'auto'}}>
+                  {isSearching && (
+                    <div style={{padding:'10px 12px', color:'var(--muted)'}}>Searching...</div>
+                  )}
+                  {!isSearching && suggestions.length === 0 && (
+                    <div style={{padding:'10px 12px', color:'var(--muted)'}}>No matches found</div>
+                  )}
+                  {!isSearching && suggestions.slice(0,10).map(s => (
+                    <div key={s.symbol} className="suggestion-item" style={{padding:'8px', cursor:'pointer'}} onMouseDown={()=>{
+                      setPickedSymbol((s.symbol || '').toUpperCase())
+                      setForm(prev => ({ ...prev, title: s.name || s.symbol, ticker: (s.symbol || '').toUpperCase() }))
                       setShowSug(false)
                     }}>
                       <div style={{display:'flex', justifyContent:'space-between'}}>
@@ -91,51 +160,53 @@ export default function Stocks() {
                 </div>
               )}
             </div>
-            <input className="input" placeholder="Ticker (e.g., AAPL)" value={form.ticker} onChange={e=>setForm({...form, ticker: e.target.value.toUpperCase()})} />
-            <button className="btn" onClick={submit}>Create</button>
+            <input className="input" placeholder="Ticker (auto-filled from suggestion)" value={form.ticker} readOnly />
+            <button className="btn" onClick={submit} disabled={!form.portfolio || !pickedSymbol}>Create</button>
           </div>
         </div>
         <div className="card">
           <div style={{fontWeight:700, marginBottom:8}}>Stocks</div>
-          <table className="table">
-            <thead><tr><th>Portfolio</th><th>Title</th><th>Ticker</th><th>Actions</th></tr></thead>
-            <tbody>
-              {items.map(s => (
-                <tr key={s.id}>
-                  <td>
-                    {editing?.id===s.id ? (
-                      <select className="select" value={editing.portfolio} onChange={e=>setEditing({...editing, portfolio: Number(e.target.value)})}>
-                        {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                      </select>
-                    ) : portfolios.find(p=>p.id===s.portfolio)?.title || s.portfolio}
-                  </td>
-                  <td>
-                    {editing?.id===s.id ? (
-                      <input className="input" value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})} />
-                    ) : s.title}
-                  </td>
-                  <td>
-                    {editing?.id===s.id ? (
-                      <input className="input" value={editing.ticker} onChange={e=>setEditing({...editing, ticker:e.target.value.toUpperCase()})} />
-                    ) : s.ticker}
-                  </td>
-                  <td className="row">
-                    {editing?.id===s.id ? (
-                      <>
-                        <button className="btn" onClick={saveEdit}>Save</button>
-                        <button className="btn secondary" onClick={()=>setEditing(null)}>Cancel</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn" onClick={()=>setEditing(s)}>Edit</button>
-                        <button className="btn secondary" onClick={()=>del(s.id)}>Delete</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Portfolio</th><th>Title</th><th>Ticker</th><th>Actions</th></tr></thead>
+              <tbody>
+                {items.map(s => (
+                  <tr key={s.id}>
+                    <td>
+                      {editing?.id===s.id ? (
+                        <select className="select" value={editing.portfolio} onChange={e=>setEditing({...editing, portfolio: Number(e.target.value)})}>
+                          {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                        </select>
+                      ) : portfolios.find(p=>p.id===s.portfolio)?.title || s.portfolio}
+                    </td>
+                    <td>
+                      {editing?.id===s.id ? (
+                        <input className="input" value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})} />
+                      ) : s.title}
+                    </td>
+                    <td>
+                      {editing?.id===s.id ? (
+                        <input className="input" value={editing.ticker} onChange={e=>setEditing({...editing, ticker:e.target.value.toUpperCase()})} />
+                      ) : s.ticker}
+                    </td>
+                    <td className="row">
+                      {editing?.id===s.id ? (
+                        <>
+                          <button className="btn" onClick={saveEdit}>Save</button>
+                          <button className="btn secondary" onClick={()=>setEditing(null)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="btn" onClick={()=>setEditing(s)}>Edit</button>
+                          <button className="btn secondary" onClick={()=>del(s.id)}>Delete</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <Popup

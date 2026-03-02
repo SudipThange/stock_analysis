@@ -7,7 +7,14 @@ import ChartTV from '../components/ChartTV'
 export default function Dashboard() {
   const { ticker } = useParams()
   const { access } = useAuth()
-  const [data, setData] = useState<{ data_head: any[]; pe_ratio: number; fig_urls: any; series: any } | null>(null)
+  const [data, setData] = useState<{
+    data_head: any[]
+    pe_ratio: number
+    opportunity_score?: number | null
+    discount_score?: number | null
+    fig_urls: any
+    series: any
+  } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -16,7 +23,7 @@ export default function Dashboard() {
       if (!ticker) return
       setLoading(true)
       try {
-        const res = await apiGet(`/dashboard/${encodeURIComponent(ticker)}/`, undefined)
+        const res = await apiGet(`/dashboard/${encodeURIComponent(ticker)}/`, access || undefined)
         setData(res)
         setError(null)
       } catch (e: any) {
@@ -38,9 +45,28 @@ export default function Dashboard() {
         {error && <div style={{color:'var(--danger)', marginBottom:8}}>{error}</div>}
         {data && (
           <div className="grid" style={{gridTemplateColumns:'1fr', gap:16}}>
-            <div className="row" style={{justifyContent:'space-between', alignItems:'baseline'}}>
-              <div style={{fontWeight:700}}>P/E Ratio</div>
-              <div className="pill">{Number.isFinite(data.pe_ratio)?data.pe_ratio.toFixed(2):'—'}</div>
+            <div className="grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:12}}>
+              <div className="card" style={{padding:14}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+                  <div style={{fontWeight:700}}>P/E Ratio</div>
+                  <div className="pill">{Number.isFinite(data.pe_ratio) ? data.pe_ratio.toFixed(2) : '—'}</div>
+                </div>
+                <div style={{color:'var(--muted)', fontSize:13}}>Price relative to earnings baseline; lower may indicate cheaper valuation.</div>
+              </div>
+              <div className="card" style={{padding:14}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+                  <div style={{fontWeight:700}}>Opportunity Score</div>
+                  <div className="pill">{Number.isFinite(data.opportunity_score as number) ? (data.opportunity_score as number).toFixed(2) : '—'}</div>
+                </div>
+                <div style={{color:'var(--muted)', fontSize:13}}>Trend-strength score from MA20 vs MA50 crossover momentum (0–100).</div>
+              </div>
+              <div className="card" style={{padding:14}}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+                  <div style={{fontWeight:700}}>Discount Score</div>
+                  <div className="pill">{Number.isFinite(data.discount_score as number) ? (data.discount_score as number).toFixed(2) : '—'}</div>
+                </div>
+                <div style={{color:'var(--muted)', fontSize:13}}>How far price is below 30-day mean vs volatility; higher means more discounted.</div>
+              </div>
             </div>
             <div className="card">
               <div style={{fontWeight:700, marginBottom:8}}>Top 10 Rows</div>

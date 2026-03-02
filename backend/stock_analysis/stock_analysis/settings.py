@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'portfolio.apps.PortfolioConfig',
     'stock.apps.StockConfig',
     'rest_framework',
+    'drf_yasg',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
 ]
@@ -54,6 +55,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
     ),
+}
+
+SWAGGER_SETTINGS = {
+    'DEFAULT_INFO': 'stock_analysis.swagger.API_INFO',
 }
 
 MIDDLEWARE = [

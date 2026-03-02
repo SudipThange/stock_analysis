@@ -43,8 +43,8 @@ export default function Portfolios() {
   }
 
   return (
-    <div className="container" style={{padding:'24px 0'}}>
-      <div className="grid" style={{gridTemplateColumns:'1fr 2fr'}}>
+    <div className="container page">
+      <div className="grid split-layout">
         <div className="card">
           <div style={{fontWeight:700, marginBottom:8}}>Create Portfolio</div>
           <div className="grid">
@@ -55,38 +55,40 @@ export default function Portfolios() {
         </div>
         <div className="card">
           <div style={{fontWeight:700, marginBottom:8}}>Portfolios</div>
-          <table className="table">
-            <thead><tr><th>Title</th><th>Description</th><th>Actions</th></tr></thead>
-            <tbody>
-              {items.map(p => (
-                <tr key={p.id}>
-                  <td>
-                    {editing?.id===p.id ? (
-                      <input className="input" value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})} />
-                    ) : p.title}
-                  </td>
-                  <td>
-                    {editing?.id===p.id ? (
-                      <input className="input" value={editing.desc} onChange={e=>setEditing({...editing, desc:e.target.value})} />
-                    ) : p.desc}
-                  </td>
-                  <td className="row">
-                    {editing?.id===p.id ? (
-                      <>
-                        <button className="btn" onClick={saveEdit}>Save</button>
-                        <button className="btn secondary" onClick={()=>setEditing(null)}>Cancel</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn" onClick={()=>setEditing(p)}>Edit</button>
-                        <button className="btn secondary" onClick={()=>del(p.id)}>Delete</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Title</th><th>Description</th><th>Actions</th></tr></thead>
+              <tbody>
+                {items.map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      {editing?.id===p.id ? (
+                        <input className="input" value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})} />
+                      ) : p.title}
+                    </td>
+                    <td>
+                      {editing?.id===p.id ? (
+                        <input className="input" value={editing.desc} onChange={e=>setEditing({...editing, desc:e.target.value})} />
+                      ) : p.desc}
+                    </td>
+                    <td className="row">
+                      {editing?.id===p.id ? (
+                        <>
+                          <button className="btn" onClick={saveEdit}>Save</button>
+                          <button className="btn secondary" onClick={()=>setEditing(null)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="btn" onClick={()=>setEditing(p)}>Edit</button>
+                          <button className="btn secondary" onClick={()=>del(p.id)}>Delete</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <Popup

@@ -27,9 +27,13 @@ export default function Explore() {
   useEffect(() => { if (access) load() }, [access])
 
   return (
-    <div className="container" style={{padding:'24px 0'}}>
+    <div className="container page">
       <div className="card grid">
         <div style={{fontWeight:700}}>Explore Dashboard</div>
+        <div className="card discover-card" onClick={()=>nav('/explore-gold-silver')}>
+          <div style={{fontWeight:600}}>Explore Gold & Silver</div>
+          <div style={{color:'var(--muted)'}}>View 5-year price increase and correlation graphs.</div>
+        </div>
         <div className="row">
           <select className="select" value={portfolioId || ''} onChange={e=>{setPortfolioId(Number(e.target.value))}}>
             <option value="" disabled>Select portfolio</option>
