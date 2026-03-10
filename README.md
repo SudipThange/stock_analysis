@@ -1,44 +1,67 @@
-# GenZ Investors
+# SmartInvestores
 
-Full-stack stock analytics app with a Django REST backend and React + Vite frontend.
+SmartInvestores is a full-stack stock analytics platform built with Django REST Framework and React (Vite + TypeScript). It supports user authentication, portfolio and stock management, market data exploration, forecasting, and analytics-focused visualizations.
 
-## Highlights
-- Brand updated to **GenZ Investors** with custom logo in navbar.
-- Portfolio and Stock management (create, edit, delete).
-- Real-time stock autosuggestions from Yahoo Finance for ticker selection.
-- Dashboard metrics cards:
-  - P/E Ratio
-  - Opportunity Score
-  - Discount Score
-- Explore Gold & Silver page:
-  - 5-year growth comparison
-  - Correlation scatter plots
-  - Linear regression for Gold→Silver and Silver→Gold with best-fit lines
+## Tech Stack
 
-## Project Structure
-- Backend: `backend/stock_analysis`
-- Frontend: `frontend`
+- Backend: Django 5, Django REST Framework, SimpleJWT, drf-yasg
+- Frontend: React 18, TypeScript, Vite, React Router
+- Data/Analysis: yfinance, pandas, numpy, scikit-learn
+- Database (default): SQLite (`backend/stock_analysis/db.sqlite3`)
 
-## API Documentation (Swagger)
-After running backend server, open:
+## Repository Structure
 
-- Swagger UI: `http://localhost:8000/swagger/`
-- ReDoc: `http://localhost:8000/redoc/`
-- OpenAPI JSON: `http://localhost:8000/swagger.json`
+```
+backend/stock_analysis/
+  manage.py
+  stock_analysis/      # Django project settings/urls
+  user/                # Registration, login, profile, logout
+  portfolio/           # Portfolio CRUD
+  stock/               # Stock CRUD + analytics endpoints
 
-Generated schema file is also saved at:
-- `backend/stock_analysis/openapi.json`
+frontend/
+  src/
+    api/               # API client with JWT refresh logic
+    routes/            # App pages/features
+    components/        # Shared UI components
+```
 
-## Run Locally
+## Features
 
-### 1) Backend
+- JWT authentication (register, login, refresh, logout, profile)
+- Portfolio CRUD operations
+- Stock CRUD operations under a portfolio
+- Stock search suggestions (Yahoo Finance backed)
+- Dashboard analytics by ticker
+- Gold/Silver exploration with:
+  - Growth comparison time series
+  - Standardized correlation scatter datasets
+  - Linear regression summaries
+- Stock comparison analytics for two selected stocks
+- Risk categorization for portfolio stocks
+- Portfolio clustering endpoint
+- Stock forecasting endpoint
+
+## Local Setup
+
+### 1) Backend Setup
+
 From `backend/stock_analysis`:
 
 ```bash
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
 ```
 
-### 2) Frontend
+Backend base URL: `http://127.0.0.1:8000`
+
+### 2) Frontend Setup
+
 From `frontend`:
 
 ```bash
@@ -46,19 +69,103 @@ npm install
 npm run dev
 ```
 
-Frontend uses Vite proxy and calls backend via `/api/*`.
+Frontend dev URL: `http://127.0.0.1:5173`
 
-## Main Endpoints
-- `POST /user/register/`
-- `POST /user/login/`
-- `GET/POST /portfolio/`
-- `GET/PUT/PATCH/DELETE /portfolio/{id}/`
-- `GET/POST /stock/`
-- `GET/PUT/PATCH/DELETE /stock/{id}/`
+### 3) Frontend Proxy Behavior
+
+Vite is configured to proxy `/api/*` requests to Django:
+
+- Frontend request: `/api/user/login/`
+- Proxied backend request: `http://127.0.0.1:8000/user/login/`
+
+## API Documentation
+
+When backend is running:
+
+- Swagger UI: `http://127.0.0.1:8000/swagger/`
+- ReDoc: `http://127.0.0.1:8000/redoc/`
+- OpenAPI JSON endpoint: `http://127.0.0.1:8000/swagger.json`
+- Saved schema file: `backend/stock_analysis/openapi.json`
+
+## Core Endpoints
+
+### User
+
+- `POST /user/` register user
+- `POST /user/login/` login
+- `POST /user/token/refresh/` refresh access token
+- `POST /user/logout/` logout and blacklist refresh token
+- `GET /user/profile/` get current user profile
+
+### Portfolio
+
+- `GET /portfolio/`
+- `POST /portfolio/`
+- `GET /portfolio/{id}/`
+- `PUT /portfolio/{id}/`
+- `PATCH /portfolio/{id}/`
+- `DELETE /portfolio/{id}/`
+
+### Stock
+
+- `GET /stock/`
+- `POST /stock/`
+- `GET /stock/{id}/`
+- `PUT /stock/{id}/`
+- `PATCH /stock/{id}/`
+- `DELETE /stock/{id}/`
 - `GET /stock/search/?q=<query>`
 - `GET /stock/metals/`
+- `GET /stock/compare/?portfolio_id=<id>&stock1_id=<id>&stock2_id=<id>`
+- `GET /stock/risk-categorization/?portfolio_id=<id>`
+- `GET /stock/portfolio-cluster/?portfolio_id=<id>`
+- `GET /stock/forecast/?portfolio_id=<id>&stock_id=<id>`
+
+### Dashboard
+
 - `GET /dashboard/{ticker}/`
 
+## Sequence Diagram
+
+The diagram below shows the frontend-to-backend request flow for authenticated calls with automatic token refresh.
+
+![Sequence Diagram](frontend/dist/assets/images/SequencdDigram.png)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant FE as Frontend (React/Vite)
+    participant API as Django API
+    participant YF as Yahoo Finance
+
+    U->>FE: Login with credentials
+    FE->>API: POST /user/login/
+    API-->>FE: access + refresh tokens
+    FE->>FE: Store tokens in localStorage
+
+    U->>FE: Open protected feature (e.g. Metals)
+    FE->>API: GET /stock/metals/ (Authorization: Bearer access)
+
+    alt Access token valid
+        API->>YF: Fetch market series
+        YF-->>API: Price history data
+        API-->>FE: Analytics payload (200)
+        FE-->>U: Render charts/results
+    else Access token expired (401)
+        API-->>FE: 401 Unauthorized
+        FE->>API: POST /user/token/refresh/
+        API-->>FE: New access token
+        FE->>API: Retry GET /stock/metals/
+        API->>YF: Fetch market series
+        YF-->>API: Price history data
+        API-->>FE: Analytics payload (200)
+        FE-->>U: Render charts/results
+    end
+```
+
 ## Notes
-- Protected endpoints require JWT access token.
-- Media files are served from `backend/stock_analysis/media` in debug mode.
+
+- Most business endpoints require JWT authentication.
+- `MEDIA_URL` and `MEDIA_ROOT` are enabled for development file serving when `DEBUG=True`.
+- Default backend settings currently use `ALLOWED_HOSTS = ['*']` and `DEBUG = True`; harden these before production deployment.
