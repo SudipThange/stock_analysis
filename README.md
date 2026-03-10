@@ -1,6 +1,6 @@
-# SmartInvestores
+# SmartInvestors
 
-SmartInvestores is a full-stack stock analytics platform built with Django REST Framework and React (Vite + TypeScript). It supports user authentication, portfolio and stock management, market data exploration, forecasting, and analytics-focused visualizations.
+SmartInvestors is a full-stack stock analytics platform built with Django REST Framework and React (Vite + TypeScript). It supports user authentication, portfolio and stock management, market data exploration, forecasting, and analytics-focused visualizations.
 
 ## Tech Stack
 
