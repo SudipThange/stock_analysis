@@ -1,0 +1,15 @@
+symbol,company_name,exchange
+AAPL,Apple Inc,NASDAQ
+TSLA,Tesla Inc,NASDAQ
+MSFT,Microsoft Corporation,NASDAQ
+GOOGL,Alphabet Inc,NASDAQ
+AMZN,Amazon.com Inc,NASDAQ
+NVDA,NVIDIA Corporation,NASDAQ
+META,Meta Platforms Inc,NASDAQ
+INFY,Infosys Ltd,NSE
+TCS,Tata Consultancy Services Ltd,NSE
+RELIANCE,Reliance Industries Ltd,NSE
+SBIN,State Bank of India,NSE
+HDFCBANK,HDFC Bank Ltd,NSE
+M&M.NS,Mahindra & Mahindra Ltd,NSE
+M&MFIN.NS,Mahindra & Mahindra Financial Services Ltd,NSE

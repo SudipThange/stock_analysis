@@ -1,7 +1,7 @@
 from drf_yasg import openapi
 
 API_INFO = openapi.Info(
-    title="GenZ Investors API",
+    title="SmartInvestores API",
     default_version="v1",
-    description="API documentation for GenZ Investors",
+    description="API documentation for SmartInvestores",
 )

@@ -5,7 +5,8 @@ from .models import Portfolio
 class PortfolioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Portfolio
-        fields = ['id', 'title', 'desc', 'created_at', 'updated_at']
+        fields = ['id', 'owner', 'title', 'desc', 'created_at', 'updated_at']
+        read_only_fields = ['owner']
 
     def validate_title(self, value):
         """

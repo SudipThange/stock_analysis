@@ -23,20 +23,31 @@ class Stock(models.Model):
     )
 
     ticker_validator = RegexValidator(
-        regex=r'^[A-Z\.]+$',
-        message="Ticker must contain only uppercase letters and dots."
+        regex=r'^[A-Z0-9\.\-&]+$',
+        message="Ticker must contain only uppercase letters, numbers, dots, hyphens, and ampersands."
     )
 
     ticker = models.CharField(
         max_length=20,
-        unique=True,
         validators=[ticker_validator],
         null=False,
         blank=False
     )
 
+    today_open = models.FloatField(null=True, blank=True)
+    today_close = models.FloatField(null=True, blank=True)
+    min_price = models.FloatField(null=True, blank=True)
+    max_price = models.FloatField(null=True, blank=True)
+    avg_price_last_month = models.FloatField(null=True, blank=True)
+    pe_ratio = models.FloatField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['portfolio', 'ticker'], name='unique_ticker_per_portfolio')
+        ]
 
     def __str__(self):
         return f"{self.title} ({self.ticker})"

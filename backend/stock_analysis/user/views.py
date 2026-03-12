@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
+from django.db.models import Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
@@ -41,26 +42,28 @@ class RegisterUserAPI(APIView):
 class LoginUserAPI(APIView):
 
     def post(self, request):
-        email = request.data.get("email")
+        identifier = (request.data.get("email") or request.data.get("username") or "").strip()
         password = request.data.get("password")
 
-        if not email or not password:
+        if not identifier or not password:
             return Response(
-                {"error": "Email and password are required"},
+                {"error": "Username/Email and password are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+        user = User.objects.filter(
+            Q(email__iexact=identifier) | Q(name__iexact=identifier)
+        ).first()
+
+        if not user:
             return Response(
-                {"error": "Invalid email or password"},
+                {"error": "Invalid username/email or password"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
         if not user.check_password(password):
             return Response(
-                {"error": "Invalid email or password"},
+                {"error": "Invalid username/email or password"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 

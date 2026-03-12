@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "GenZ Investors API",
-        "description": "API documentation for GenZ Investors",
+        "title": "SmartInvestores API",
+        "description": "API documentation for SmartInvestores",
         "version": "v1"
     },
     "basePath": "/",
@@ -17,11 +17,9 @@
             "type": "basic"
         }
     },
-    "security": [
-        {
-            "Basic": []
-        }
-    ],
+    "security": [{
+        "Basic": []
+    }],
     "paths": {
         "/dashboard/{ticker}/": {
             "get": {
@@ -37,14 +35,12 @@
                     "dashboard"
                 ]
             },
-            "parameters": [
-                {
-                    "name": "ticker",
-                    "in": "path",
-                    "required": true,
-                    "type": "string"
-                }
-            ]
+            "parameters": [{
+                "name": "ticker",
+                "in": "path",
+                "required": true,
+                "type": "string"
+            }]
         },
         "/portfolio/": {
             "get": {
@@ -128,14 +124,12 @@
                     "portfolio"
                 ]
             },
-            "parameters": [
-                {
-                    "name": "id",
-                    "in": "path",
-                    "required": true,
-                    "type": "string"
-                }
-            ]
+            "parameters": [{
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "type": "string"
+            }]
         },
         "/stock/": {
             "get": {
@@ -267,14 +261,12 @@
                     "stock"
                 ]
             },
-            "parameters": [
-                {
-                    "name": "id",
-                    "in": "path",
-                    "required": true,
-                    "type": "string"
-                }
-            ]
+            "parameters": [{
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "type": "string"
+            }]
         },
         "/user/": {
             "post": {

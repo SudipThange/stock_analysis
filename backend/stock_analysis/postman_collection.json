@@ -1,160 +1,159 @@
 {
-  "info": {
-    "name": "StockAnalysis API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8000" },
-    { "key": "token", "value": "" },
-    { "key": "portfolioId", "value": "1" },
-    { "key": "stockId", "value": "1" },
-    { "key": "ticker", "value": "TCS.BO" }
-  ],
-  "item": [
-    {
-      "name": "Portfolio - List",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/portfolio/"
-      }
+    "info": {
+        "name": "SmartInvestores API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    {
-      "name": "Portfolio - Create",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"title\":\"Sample Portfolio\",\"desc\":\"Description\"}"
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "token", "value": "" },
+        { "key": "portfolioId", "value": "1" },
+        { "key": "stockId", "value": "1" },
+        { "key": "ticker", "value": "TCS.BO" }
+    ],
+    "item": [{
+            "name": "Portfolio - List",
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/portfolio/"
+            }
         },
-        "url": "{{baseUrl}}/portfolio/"
-      }
-    },
-    {
-      "name": "Portfolio - Get",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
-      }
-    },
-    {
-      "name": "Portfolio - Update",
-      "request": {
-        "method": "PUT",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"title\":\"Updated Title\",\"desc\":\"Updated Description\"}"
+        {
+            "name": "Portfolio - Create",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"title\":\"Sample Portfolio\",\"desc\":\"Description\"}"
+                },
+                "url": "{{baseUrl}}/portfolio/"
+            }
         },
-        "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
-      }
-    },
-    {
-      "name": "Portfolio - Delete",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
-      }
-    },
-    {
-      "name": "Stock - List",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/stock/"
-      }
-    },
-    {
-      "name": "Stock - Create",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"portfolio\": {{portfolioId}}, \"title\":\"TCS\", \"ticker\":\"TCS.BO\"}"
+        {
+            "name": "Portfolio - Get",
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
+            }
         },
-        "url": "{{baseUrl}}/stock/"
-      }
-    },
-    {
-      "name": "Stock - Get",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/stock/{{stockId}}/"
-      }
-    },
-    {
-      "name": "Stock - Update",
-      "request": {
-        "method": "PUT",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"portfolio\": {{portfolioId}}, \"title\":\"Updated TCS\", \"ticker\":\"TCS.BO\"}"
+        {
+            "name": "Portfolio - Update",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"title\":\"Updated Title\",\"desc\":\"Updated Description\"}"
+                },
+                "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
+            }
         },
-        "url": "{{baseUrl}}/stock/{{stockId}}/"
-      }
-    },
-    {
-      "name": "Stock - Delete",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": "{{baseUrl}}/stock/{{stockId}}/"
-      }
-    },
-    {
-      "name": "Stock - Search",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/stock/search/?q={{ticker}}",
-          "host": ["{{baseUrl}}"],
-          "path": ["stock", "search", ""],
-          "query": [
-            { "key": "q", "value": "{{ticker}}" }
-          ]
+        {
+            "name": "Portfolio - Delete",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/portfolio/{{portfolioId}}/"
+            }
+        },
+        {
+            "name": "Stock - List",
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/stock/"
+            }
+        },
+        {
+            "name": "Stock - Create",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"portfolio\": {{portfolioId}}, \"title\":\"TCS\", \"ticker\":\"TCS.BO\"}"
+                },
+                "url": "{{baseUrl}}/stock/"
+            }
+        },
+        {
+            "name": "Stock - Get",
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/stock/{{stockId}}/"
+            }
+        },
+        {
+            "name": "Stock - Update",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"portfolio\": {{portfolioId}}, \"title\":\"Updated TCS\", \"ticker\":\"TCS.BO\"}"
+                },
+                "url": "{{baseUrl}}/stock/{{stockId}}/"
+            }
+        },
+        {
+            "name": "Stock - Delete",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": "{{baseUrl}}/stock/{{stockId}}/"
+            }
+        },
+        {
+            "name": "Stock - Search",
+            "request": {
+                "method": "GET",
+                "header": [
+                    { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/stock/search/?q={{ticker}}",
+                    "host": ["{{baseUrl}}"],
+                    "path": ["stock", "search", ""],
+                    "query": [
+                        { "key": "q", "value": "{{ticker}}" }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Dashboard - Get",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/dashboard/{{ticker}}/"
+            }
         }
-      }
-    },
-    {
-      "name": "Dashboard - Get",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/dashboard/{{ticker}}/"
-      }
-    }
-  ]
+    ]
 }

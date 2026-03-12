@@ -20,8 +20,12 @@ def generate_opportunity_fig(df):
     ax.plot(df["Date"], df["Close"], label="Close", color="#4F46E5")
     ax.plot(df["Date"], df["MA20"], label="MA20", color="#F59E0B")
     ax.plot(df["Date"], df["MA50"], label="MA50", color="#10B981")
-    buys = df[df["Position"] == 1]
-    sells = df[df["Position"] == -1]
+    if "buy_signal" in df.columns and "sell_signal" in df.columns:
+        buys = df[df["buy_signal"] == 1]
+        sells = df[df["sell_signal"] == 1]
+    else:
+        buys = df[df["Position"] == 1]
+        sells = df[df["Position"] == -1]
     ax.scatter(buys["Date"], buys["Close"], marker="^", color="#22C55E", label="Buy", zorder=3)
     ax.scatter(sells["Date"], sells["Close"], marker="v", color="#EF4444", label="Sell", zorder=3)
     ax.set_title("Opportunity Signals (MA Crossover)")

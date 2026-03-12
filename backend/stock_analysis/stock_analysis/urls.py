@@ -19,26 +19,31 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from stock.views import DashboardAPIView
+from stock.views import StockSearchAPIView
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from .swagger import API_INFO
-
-schema_view = get_schema_view(
-    API_INFO,
-    public=True,
-    permission_classes=[permissions.AllowAny],
-)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('user.urls')),
     path('portfolio/', include('portfolio.urls')),
     path('stock/', include('stock.urls')),
+    path('stocks/search/', StockSearchAPIView.as_view()),
     path('dashboard/<str:ticker>/', DashboardAPIView.as_view()),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
+
+if settings.ENABLE_API_DOCS:
+    schema_view = get_schema_view(
+        API_INFO,
+        public=True,
+        permission_classes=[permissions.AllowAny],
+    )
+    urlpatterns += [
+        path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+        path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+        path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

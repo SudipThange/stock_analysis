@@ -1,8 +1,15 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.conf import settings
 
 
 class Portfolio(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='portfolios'
+    )
+
     title_validator = RegexValidator(
         regex=r'^[A-Za-z ]+$',
         message="Title must contain only letters and spaces."
