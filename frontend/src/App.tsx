@@ -4,17 +4,26 @@ import Hero from './components/Hero'
 import Features from './components/Features'
 import Footer from './components/Footer'
 import Login from './routes/Login'
+import Register from './routes/Register'
 import Portfolios from './routes/Portfolios'
 import Stocks from './routes/Stocks'
+import StockDetail from './routes/StockDetail'
 import Explore from './routes/Explore'
 import ExploreGoldSilver from './routes/ExploreGoldSilver'
 import Dashboard from './routes/Dashboard'
+import OtherFeatures from './routes/OtherFeatures'
+import CompareStocksFeature from './routes/CompareStocksFeature'
+import RiskCategorizationFeature from './routes/RiskCategorizationFeature'
+import PortfolioClusteringFeature from './routes/PortfolioClusteringFeature'
+import StockForecastFeature from './routes/StockForecastFeature'
+import StockForecastResult from './routes/StockForecastResult'
+import OtherFeaturePlaceholder from './routes/OtherFeaturePlaceholder'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 
 export default function App() {
   const location = useLocation()
-  const showGraphBackground = location.pathname === '/login'
+  const showGraphBackground = location.pathname === '/login' || location.pathname === '/register'
 
   return (
     <AuthProvider>
@@ -92,10 +101,19 @@ export default function App() {
                 <Features />
               </>} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/portfolios" element={<ProtectedRoute><Portfolios /></ProtectedRoute>} />
               <Route path="/stocks" element={<ProtectedRoute><Stocks /></ProtectedRoute>} />
+              <Route path="/stocks/:stockId" element={<ProtectedRoute><StockDetail /></ProtectedRoute>} />
               <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
               <Route path="/explore-gold-silver" element={<ProtectedRoute><ExploreGoldSilver /></ProtectedRoute>} />
+              <Route path="/other-features" element={<ProtectedRoute><OtherFeatures /></ProtectedRoute>} />
+              <Route path="/other-features/compare-stocks" element={<ProtectedRoute><CompareStocksFeature /></ProtectedRoute>} />
+              <Route path="/other-features/risk-categorization" element={<ProtectedRoute><RiskCategorizationFeature /></ProtectedRoute>} />
+              <Route path="/other-features/portfolio-clustering" element={<ProtectedRoute><PortfolioClusteringFeature /></ProtectedRoute>} />
+              <Route path="/other-features/stock-forecast" element={<ProtectedRoute><StockForecastFeature /></ProtectedRoute>} />
+              <Route path="/other-features/stock-forecast/result" element={<ProtectedRoute><StockForecastResult /></ProtectedRoute>} />
+              <Route path="/other-features/:featureId" element={<ProtectedRoute><OtherFeaturePlaceholder /></ProtectedRoute>} />
               <Route path="/dashboard/:ticker" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="*" element={<div className="container">Not found</div>} />
             </Routes>

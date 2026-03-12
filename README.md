@@ -53,6 +53,9 @@ python -m venv .venv
 # Windows PowerShell
 .\.venv\Scripts\Activate.ps1
 
+# Copy env template and set real values
+cp .env.example .env
+
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
@@ -65,6 +68,9 @@ Backend base URL: `http://127.0.0.1:8000`
 From `frontend`:
 
 ```bash
+# Copy env template
+cp .env.example .env
+
 npm install
 npm run dev
 ```
@@ -86,6 +92,7 @@ When backend is running:
 - ReDoc: `http://127.0.0.1:8000/redoc/`
 - OpenAPI JSON endpoint: `http://127.0.0.1:8000/swagger.json`
 - Saved schema file: `backend/stock_analysis/openapi.json`
+- Docs can be disabled in production with `DJANGO_ENABLE_API_DOCS=0`
 
 ## Core Endpoints
 
@@ -168,4 +175,11 @@ sequenceDiagram
 
 - Most business endpoints require JWT authentication.
 - `MEDIA_URL` and `MEDIA_ROOT` are enabled for development file serving when `DEBUG=True`.
-- Default backend settings currently use `ALLOWED_HOSTS = ['*']` and `DEBUG = True`; harden these before production deployment.
+- Backend settings are environment-driven (`.env`) with a production entrypoint: `stock_analysis.settings_prod`.
+- Frontend API base URL is environment-driven via `VITE_API_BASE_URL`.
+
+## Production Deployment (Azure VM)
+
+- Use the full runbook: `DEPLOYMENT_CHECKLIST.md`
+- Backend production dependencies: `backend/stock_analysis/requirements-prod.txt`
+- Gunicorn config: `backend/stock_analysis/gunicorn.conf.py`

@@ -18,7 +18,7 @@ export default function Hero() {
         </div>
         <div className="hero-stats">
           <div className="card hero-stat-card">
-            <div className="hero-stat-value">5Y</div>
+            <div className="hero-stat-value">1Y</div>
             <div className="hero-stat-label">Metals trend coverage</div>
           </div>
           <div className="card hero-stat-card">

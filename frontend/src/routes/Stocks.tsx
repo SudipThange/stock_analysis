@@ -1,25 +1,58 @@
-import { useEffect, useRef, useState } from 'react'
-import Popup from '../components/Popup'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Edit2, Save, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import TopSuccessPopup from '../components/TopSuccessPopup'
+import StockAutocomplete from '../components/StockAutocomplete'
 import { useAuth } from '../context/AuthContext'
 import { apiGet, apiJson } from '../api/client'
 
 type Portfolio = { id: number; title: string }
-type Stock = { id: number; portfolio: number; title: string; ticker: string }
-type Suggest = { name: string; symbol: string; exchange: string; region: string }
+type Stock = {
+  id: number
+  portfolio: number
+  title: string
+  ticker: string
+  min_price?: number | null
+  max_price?: number | null
+  today_open?: number | null
+  today_close?: number | null
+  avg_price_last_month?: number | null
+  today_price?: number | null
+  pe_ratio?: number | null
+}
 
 export default function Stocks() {
+  const PAGE_SIZE = 10
   const { access } = useAuth()
+  const navigate = useNavigate()
   const [portfolios, setPortfolios] = useState<Portfolio[]>([])
   const [items, setItems] = useState<Stock[]>([])
   const [form, setForm] = useState<{portfolio?: number; title: string; ticker: string}>({ title:'', ticker:'' })
   const [pickedSymbol, setPickedSymbol] = useState<string | null>(null)
   const [editing, setEditing] = useState<Stock | null>(null)
-  const [suggestions, setSuggestions] = useState<Suggest[]>([])
-  const [showSug, setShowSug] = useState(false)
-  const [isSearching, setIsSearching] = useState(false)
+  const [portfolioFilter, setPortfolioFilter] = useState<string>('all')
+  const [page, setPage] = useState(0)
   const [showSuccess, setShowSuccess] = useState<{open:boolean; text:string}>({open:false, text:''})
-  const searchCacheRef = useRef<Record<string, Suggest[]>>({})
-  const latestSearchIdRef = useRef(0)
+
+  const parseErrorMessage = (error: unknown) => {
+    const fallback = 'Failed to create stock. Please verify Title and Ticker.'
+    if (!(error instanceof Error) || !error.message) return fallback
+
+    const raw = error.message.trim()
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed?.ticker) {
+        return Array.isArray(parsed.ticker) ? parsed.ticker[0] : String(parsed.ticker)
+      }
+      if (parsed?.portfolio) {
+        return Array.isArray(parsed.portfolio) ? parsed.portfolio[0] : String(parsed.portfolio)
+      }
+      if (parsed?.detail) return String(parsed.detail)
+      return fallback
+    } catch {
+      return raw || fallback
+    }
+  }
 
   const load = async () => {
     const ps = await apiGet('/portfolio/', access || undefined)
@@ -30,60 +63,8 @@ export default function Stocks() {
   useEffect(() => { if (access) load() }, [access])
 
   useEffect(() => {
-    const q = form.title.trim()
-    if (!form.portfolio || !q || q.length < 1) {
-      setSuggestions([])
-      setShowSug(false)
-      setIsSearching(false)
-      return
-    }
-
-    const cacheKey = `${form.portfolio}:${q.toLowerCase()}`
-    if (searchCacheRef.current[cacheKey]) {
-      setSuggestions(searchCacheRef.current[cacheKey])
-      setShowSug(true)
-      setIsSearching(false)
-      return
-    }
-
-    const controller = new AbortController()
-    const searchId = ++latestSearchIdRef.current
-    const id = setTimeout(async () => {
-      setIsSearching(true)
-      try {
-        const data = await apiGet(
-          `/stock/search/?q=${encodeURIComponent(q)}&portfolio_id=${form.portfolio}`,
-          access || undefined,
-          { signal: controller.signal }
-        )
-        if (searchId !== latestSearchIdRef.current) return
-        const next = data.results || []
-        if (next.length > 0) {
-          searchCacheRef.current[cacheKey] = next
-        }
-        setSuggestions(next)
-        setShowSug(true)
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return
-        if (searchId !== latestSearchIdRef.current) return
-        setSuggestions([])
-        setShowSug(true)
-      } finally {
-        if (searchId === latestSearchIdRef.current) {
-          setIsSearching(false)
-        }
-      }
-    }, 150)
-    return () => {
-      clearTimeout(id)
-      controller.abort()
-    }
-  }, [form.title, form.portfolio, access])
-
-  useEffect(() => {
     setPickedSymbol(null)
     setForm(prev => ({ ...prev, title: '', ticker: '' }))
-    setSuggestions([])
   }, [form.portfolio])
 
   const submit = async () => {
@@ -92,10 +73,10 @@ export default function Stocks() {
       await apiJson('/stock/', 'POST', { portfolio: form.portfolio, title: form.title, ticker: form.ticker }, access || undefined)
       setForm(prev => ({ ...prev, title:'', ticker:'' }))
       setPickedSymbol(null)
-      setShowSuccess({ open:true, text:`Stock “${form.title}” added to portfolio.` })
+      setShowSuccess({ open:true, text:`Stock "${form.title}" added to portfolio.` })
       await load()
     } catch (e) {
-      alert('Failed to create stock. Please verify Title and Ticker.')
+      alert(parseErrorMessage(e))
     }
   }
 
@@ -111,9 +92,34 @@ export default function Stocks() {
     await load()
   }
 
+  const filteredItems = portfolioFilter === 'all'
+    ? items
+    : items.filter(s => s.portfolio === Number(portfolioFilter))
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE))
+  const pagedItems = filteredItems.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(0)
+  }, [portfolioFilter, items.length])
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1))
+    }
+  }, [page, totalPages])
+
+  const fmt = (value?: number | null) => value === null || value === undefined ? '—' : Number(value).toFixed(2)
+
   return (
     <div className="container page">
-      <div className="grid split-layout">
+      <TopSuccessPopup
+        open={showSuccess.open}
+        title="Stock Added"
+        message={showSuccess.text}
+        onDone={() => setShowSuccess({open:false, text:''})}
+      />
+      <div className="grid stocks-stack-layout">
         <div className="card">
           <div style={{fontWeight:700, marginBottom:8}}>Create Stock</div>
           <div className="grid">
@@ -121,100 +127,152 @@ export default function Stocks() {
               <option value="" disabled>Select portfolio</option>
               {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
-            <div style={{position:'relative'}}>
-              <input
-                className="input"
-                placeholder={form.portfolio ? 'Title' : 'Select portfolio first'}
-                value={form.title}
-                disabled={!form.portfolio}
-                onChange={e=>{
-                  setPickedSymbol(null)
-                  setForm(prev => ({ ...prev, title: e.target.value, ticker: '' }))
-                }}
-                onFocus={()=>{
-                  if (form.title.trim().length >= 1) setShowSug(true)
-                }}
-                onBlur={()=>setTimeout(()=>setShowSug(false),150)}
-              />
-              {showSug && form.portfolio && form.title.trim().length >= 1 && (
-                <div className="suggestion-menu" style={{position:'absolute', top:'100%', left:0, right:0, zIndex:10, maxHeight:220, overflow:'auto'}}>
-                  {isSearching && (
-                    <div style={{padding:'10px 12px', color:'var(--muted)'}}>Searching...</div>
-                  )}
-                  {!isSearching && suggestions.length === 0 && (
-                    <div style={{padding:'10px 12px', color:'var(--muted)'}}>No matches found</div>
-                  )}
-                  {!isSearching && suggestions.slice(0,10).map(s => (
-                    <div key={s.symbol} className="suggestion-item" style={{padding:'8px', cursor:'pointer'}} onMouseDown={()=>{
-                      setPickedSymbol((s.symbol || '').toUpperCase())
-                      setForm(prev => ({ ...prev, title: s.name || s.symbol, ticker: (s.symbol || '').toUpperCase() }))
-                      setShowSug(false)
-                    }}>
-                      <div style={{display:'flex', justifyContent:'space-between'}}>
-                        <span>{s.name}</span>
-                        <span className="pill">{s.symbol}</span>
-                      </div>
-                      <div style={{color:'var(--muted)', fontSize:12}}>{s.exchange} • {s.region}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <StockAutocomplete
+              token={access || undefined}
+              disabled={!form.portfolio}
+              value={form.title}
+              placeholder={form.portfolio ? 'Title' : 'Select portfolio first'}
+              onChange={next => {
+                setPickedSymbol(null)
+                setForm(prev => ({ ...prev, title: next, ticker: '' }))
+              }}
+              onSelect={item => {
+                setPickedSymbol(item.symbol)
+                setForm(prev => ({ ...prev, title: item.company_name || item.symbol, ticker: item.symbol }))
+              }}
+            />
             <input className="input" placeholder="Ticker (auto-filled from suggestion)" value={form.ticker} readOnly />
-            <button className="btn" onClick={submit} disabled={!form.portfolio || !pickedSymbol}>Create</button>
+            <button className="btn" onClick={submit} disabled={!form.portfolio || !pickedSymbol}>
+              <Plus size={16} style={{marginRight: 6}} />
+              Create
+            </button>
           </div>
         </div>
         <div className="card">
-          <div style={{fontWeight:700, marginBottom:8}}>Stocks</div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Portfolio</th><th>Title</th><th>Ticker</th><th>Actions</th></tr></thead>
-              <tbody>
-                {items.map(s => (
-                  <tr key={s.id}>
-                    <td>
-                      {editing?.id===s.id ? (
-                        <select className="select" value={editing.portfolio} onChange={e=>setEditing({...editing, portfolio: Number(e.target.value)})}>
-                          {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                        </select>
-                      ) : portfolios.find(p=>p.id===s.portfolio)?.title || s.portfolio}
-                    </td>
-                    <td>
-                      {editing?.id===s.id ? (
-                        <input className="input" value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})} />
-                      ) : s.title}
-                    </td>
-                    <td>
-                      {editing?.id===s.id ? (
-                        <input className="input" value={editing.ticker} onChange={e=>setEditing({...editing, ticker:e.target.value.toUpperCase()})} />
-                      ) : s.ticker}
-                    </td>
-                    <td className="row">
-                      {editing?.id===s.id ? (
-                        <>
-                          <button className="btn" onClick={saveEdit}>Save</button>
-                          <button className="btn secondary" onClick={()=>setEditing(null)}>Cancel</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="btn" onClick={()=>setEditing(s)}>Edit</button>
-                          <button className="btn secondary" onClick={()=>del(s.id)}>Delete</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, marginBottom:8}}>
+            <div style={{fontWeight:700}}>Stocks</div>
+            <select className="select stock-filter-select" style={{maxWidth:260}} value={portfolioFilter} onChange={e=>setPortfolioFilter(e.target.value)}>
+              <option value="all">All portfolios</option>
+              {portfolios.map(p => <option key={p.id} value={String(p.id)}>{p.title}</option>)}
+            </select>
+          </div>
+          <div className="stock-list">
+            {filteredItems.length > 0 && (
+              <>
+                <div className="stock-analysis-hint">Double click to analyze the stock.</div>
+                <div className="table-wrap stocks-table-wrap">
+                <table className="table stocks-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Stock Name</th>
+                      <th>Ticker</th>
+                      <th>Open</th>
+                      <th>Close</th>
+                      <th>Min</th>
+                      <th>Max</th>
+                      <th>Mean (1M)</th>
+                      <th>P/E Ratio</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedItems.map(s => (
+                      <tr
+                        key={s.id}
+                        className={`${editing?.id === s.id ? '' : 'stock-click-row'} stock-table-row`}
+                        onDoubleClick={() => {
+                          if (editing?.id === s.id) return
+                          navigate(`/stocks/${s.id}`)
+                        }}
+                        onKeyDown={(e) => {
+                          if (editing?.id === s.id) return
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            navigate(`/stocks/${s.id}`)
+                          }
+                        }}
+                        tabIndex={editing?.id === s.id ? -1 : 0}
+                      >
+                        <td>
+                          {editing?.id === s.id ? (
+                            <select
+                              className="select"
+                              value={editing.portfolio}
+                              onChange={e => setEditing({ ...editing, portfolio: Number(e.target.value) })}
+                            >
+                              {portfolios.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                            </select>
+                          ) : (portfolios.find(p => p.id === s.portfolio)?.title || s.portfolio)}
+                        </td>
+                        <td>
+                          {editing?.id === s.id ? (
+                            <input className="input" value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} />
+                          ) : s.title}
+                        </td>
+                        <td>
+                          {editing?.id === s.id ? (
+                            <input className="input" value={editing.ticker} onChange={e => setEditing({ ...editing, ticker: e.target.value.toUpperCase() })} />
+                          ) : s.ticker}
+                        </td>
+                        <td>{fmt(s.today_open)}</td>
+                        <td className={s.today_close != null && s.today_open != null ? (s.today_close >= s.today_open ? 'text-ok' : 'text-danger') : ''}>
+                          {s.today_close != null && s.today_open != null && (s.today_close >= s.today_open ? '▲ ' : '▼ ')}
+                          {fmt(s.today_close)}
+                        </td>
+                        <td>{fmt(s.min_price)}</td>
+                        <td>{fmt(s.max_price)}</td>
+                        <td>{fmt(s.avg_price_last_month)}</td>
+                        <td>{fmt(s.pe_ratio)}</td>
+                        <td className="stock-actions-cell">
+                          <div className="stock-row-actions">
+                            {editing?.id === s.id ? (
+                              <>
+                                <button className="btn" onClick={saveEdit}>
+                                  <Save size={16} style={{marginRight: 6}} /> Save
+                                </button>
+                                <button className="btn secondary" onClick={(e) => { e.stopPropagation(); setEditing(null) }}>
+                                  <X size={16} style={{marginRight: 6}} /> Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button className="btn" onClick={(e) => { e.stopPropagation(); setEditing(s) }}>
+                                  <Edit2 size={16} style={{marginRight: 6}} /> Edit
+                                </button>
+                                <button className="btn secondary" onClick={(e) => { e.stopPropagation(); del(s.id) }}>
+                                  <Trash2 size={16} style={{marginRight: 6}} /> Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              </>
+            )}
+
+            {filteredItems.length === 0 && (
+              <div className="stock-empty">No stocks found for selected portfolio.</div>
+            )}
+
+            {filteredItems.length > 0 && (
+              <div className="stock-pagination">
+                <button className="btn secondary" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                  <ChevronLeft size={16} style={{marginRight: 6}} /> Previous
+                </button>
+                <span>Page {page + 1} of {totalPages}</span>
+                <button className="btn" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                  Next <ChevronRight size={16} style={{marginLeft: 6}} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <Popup
-        open={showSuccess.open}
-        title="Stock Added"
-        message={showSuccess.text}
-        onClose={()=>setShowSuccess({open:false, text:''})}
-      />
     </div>
   )
 }

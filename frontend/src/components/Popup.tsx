@@ -11,15 +11,11 @@ type Props = {
 export default function Popup({ open, title, message, onClose, actions }: Props) {
   if (!open) return null
   return (
-    <div style={{
-      position:'fixed', inset:0, zIndex:100,
-      background:'rgba(2,8,23,0.6)', backdropFilter:'blur(6px)',
-      display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'
-    }}>
-      <div className="card" style={{ maxWidth:480, width:'100%' }}>
-        <div style={{fontSize:20, fontWeight:700, marginBottom:8}}>{title}</div>
-        {message && <div style={{color:'var(--muted)', marginBottom:12}}>{message}</div>}
-        <div className="row" style={{justifyContent:'flex-end'}}>
+    <div className="popup-overlay">
+      <div className="card popup-card">
+        <div className="popup-title">{title}</div>
+        {message && <div className="popup-message">{message}</div>}
+        <div className="row popup-actions">
           {actions}
           <button className="btn" onClick={onClose}>OK</button>
         </div>
