@@ -1,120 +1,75 @@
 # Azure Linux VM Deployment Checklist (Django + React/Vite)
 
-## 1) Server prerequisites
-- [ ] Ubuntu packages installed: `python3`, `python3-venv`, `python3-pip`, `nginx`, `nodejs`, `npm`
-- [ ] Firewall open for `80` and `443`
-- [ ] Domain DNS points to VM public IP
+## 1) VM and network
+- [ ] Ubuntu VM is provisioned on Azure
+- [ ] inbound ports `80` and `443` are open in the Azure NSG and the VM firewall
+- [ ] domain DNS points to the VM public IP
+- [ ] repository is checked out on the VM, preferably at `/opt/stockanalysis`
 
 ## 2) Repository hygiene
 - [ ] `.env` files are not committed
 - [ ] local artifacts are ignored (`node_modules`, `dist`, `__pycache__`, `.venv`, logs, temp files)
-- [ ] no development secrets in tracked files
+- [ ] no development secrets are stored in tracked files
 
-## 3) Backend setup
-- [ ] `cd backend/stock_analysis`
-- [ ] create and activate virtualenv
-- [ ] install production dependencies:
-  - `pip install -r requirements-prod.txt`
-- [ ] create `.env` from `.env.example` and set real values
-- [ ] run migrations:
-  - `python manage.py migrate`
-- [ ] collect static files:
-  - `python manage.py collectstatic --noinput`
-- [ ] run deployment checks:
-  - `python manage.py check --deploy --settings=stock_analysis.settings_prod`
+## 3) Server prerequisites
+- [ ] make deployment scripts executable:
+  - `chmod +x deploy/azure-vm/*.sh`
+- [ ] install required OS packages:
+  - `sudo ./deploy/azure-vm/install-prereqs.sh`
 
-## 4) Frontend setup
-- [ ] `cd frontend`
-- [ ] create `.env` from `.env.example`
-- [ ] set `VITE_API_BASE_URL=/api` (recommended with Nginx reverse proxy)
-- [ ] install and build:
-  - `npm ci`
-  - `npm run build`
+## 4) Production environment files
+- [ ] create backend env:
+  - `cp backend/stock_analysis/.env.example backend/stock_analysis/.env`
+- [ ] create frontend env:
+  - `cp frontend/.env.example frontend/.env.production`
+- [ ] set backend values:
+  - `DJANGO_ALLOWED_HOSTS=your-domain.com,www.your-domain.com,server-ip`
+  - `DJANGO_CSRF_TRUSTED_ORIGINS=https://your-domain.com,https://www.your-domain.com`
+  - `DJANGO_CORS_ALLOWED_ORIGINS=` for same-domain Nginx deployments
+  - `DJANGO_SECURE_SSL_REDIRECT=0` until TLS is installed, then switch to `1`
+  - `DJANGO_SESSION_COOKIE_SECURE=0` and `DJANGO_CSRF_COOKIE_SECURE=0` until TLS is installed
+- [ ] set frontend value:
+  - `VITE_API_BASE_URL=/api`
 
-## 5) Gunicorn service
-- [ ] create systemd unit `/etc/systemd/system/stockanalysis.service`:
+## 5) Build and provision the application
+- [ ] run the deployment script:
+  - `APP_DIR=/opt/stockanalysis ./deploy/azure-vm/deploy.sh`
+- [ ] confirm backend checks pass:
+  - `backend/stock_analysis/.venv/bin/python backend/stock_analysis/manage.py check --deploy --settings=stock_analysis.settings_prod`
 
-```ini
-[Unit]
-Description=StockAnalysis Django Gunicorn
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/opt/StockAnalysis/backend/stock_analysis
-Environment=DJANGO_SETTINGS_MODULE=stock_analysis.settings_prod
-EnvironmentFile=/opt/StockAnalysis/backend/stock_analysis/.env
-ExecStart=/opt/StockAnalysis/backend/stock_analysis/.venv/bin/gunicorn stock_analysis.wsgi:application -c gunicorn.conf.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- [ ] enable and start:
-  - `sudo systemctl daemon-reload`
-  - `sudo systemctl enable stockanalysis`
-  - `sudo systemctl start stockanalysis`
+## 6) Install service and reverse proxy config
+- [ ] install the templated `systemd` and Nginx configs:
+  - `DOMAIN=your-domain.com ADDITIONAL_SERVER_NAMES="www.your-domain.com" APP_DIR=/opt/stockanalysis ./deploy/azure-vm/install-configs.sh`
+- [ ] confirm services are running:
   - `sudo systemctl status stockanalysis`
+  - `sudo systemctl status nginx`
 
-## 6) Nginx config
-- [ ] create `/etc/nginx/sites-available/stockanalysis`:
+## 7) TLS
+- [ ] request and install the certificate:
+  - `DOMAIN=your-domain.com ADDITIONAL_SERVER_NAMES="www.your-domain.com" EMAIL=admin@your-domain.com ./deploy/azure-vm/enable-ssl.sh`
+- [ ] update backend env after TLS:
+  - `DJANGO_SECURE_SSL_REDIRECT=1`
+  - `DJANGO_SESSION_COOKIE_SECURE=1`
+  - `DJANGO_CSRF_COOKIE_SECURE=1`
+  - `DJANGO_SECURE_HSTS_SECONDS=31536000`
+- [ ] rerun the deploy script after env changes:
+  - `APP_DIR=/opt/stockanalysis ./deploy/azure-vm/deploy.sh`
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com www.your-domain.com;
+## 8) Verify externally
+- [ ] load the frontend over HTTP/HTTPS
+- [ ] verify API proxying through Nginx:
+  - `curl -I https://your-domain.com/api/swagger/`
+- [ ] verify static assets are served from `/static/`
 
-    root /opt/StockAnalysis/frontend/dist;
-    index index.html;
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /opt/StockAnalysis/backend/stock_analysis/staticfiles/;
-    }
-
-    location /media/ {
-        alias /opt/StockAnalysis/backend/stock_analysis/media/;
-    }
-
-    location / {
-        try_files $uri /index.html;
-    }
-}
-```
-
-- [ ] enable site and validate:
-  - `sudo ln -s /etc/nginx/sites-available/stockanalysis /etc/nginx/sites-enabled/`
-  - `sudo nginx -t`
-  - `sudo systemctl restart nginx`
-
-## 7) TLS (recommended)
-- [ ] install certbot and issue certificate
-- [ ] enable HTTPS redirect
-- [ ] confirm `DJANGO_CSRF_TRUSTED_ORIGINS` includes `https://your-domain.com`
-
-## 8) Recommended repository structure
+## 9) Files added for deployment
 ```text
-StockAnalysis/
-  backend/stock_analysis/
-    stock_analysis/
-      settings.py
-      settings_prod.py
-    .env.example
-    requirements.txt
-    requirements-prod.txt
-    gunicorn.conf.py
-  frontend/
-    src/
-    .env.example
-    package.json
-  DEPLOYMENT_CHECKLIST.md
+deploy/azure-vm/
+  README.md
+  install-prereqs.sh
+  deploy.sh
+  install-configs.sh
+  enable-ssl.sh
+  templates/
+    stockanalysis.service.tpl
+    nginx.stockanalysis.conf.tpl
 ```

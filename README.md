@@ -180,6 +180,7 @@ sequenceDiagram
 
 ## Production Deployment (Azure VM)
 
+- Azure VM deployment bundle: `deploy/azure-vm/README.md`
 - Use the full runbook: `DEPLOYMENT_CHECKLIST.md`
 - Backend production dependencies: `backend/stock_analysis/requirements-prod.txt`
 - Gunicorn config: `backend/stock_analysis/gunicorn.conf.py`
